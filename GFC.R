@@ -1,6 +1,6 @@
 # Hansen Global Forest Change Dataset (2000-2017)
 # Set working directory
-setwd("C:/Users/kras/ownCloud/research/research/papers/IND/land_titles")
+setwd("/Users/jacquelineliu/Desktop/Thesis_Data/Input")
 
 # Load packages
 library(sf)
@@ -13,10 +13,9 @@ library(spex)
 library(dplyr)
 
 # Load village shape file
-
-villages2013 <- st_read("download/input/villages/podes_bps2014/podes_bps2014.shp")
+villages2013 <- st_read("villages/podes_bps2014/podes_bps2014.shp")
 #plot(st_geometry(villages2013), lwd = 0.001)
-load("download/input/podes/PODES_panel.RData") 
+load("podes/PODES_panel.RData") 
 
 villages_podes <- inner_join(villages2013,PODES.panel,by = c("ID2013" = "Id2014"))
 
@@ -27,12 +26,12 @@ transmigrasi_podes <- filter(villages_podes,village_status == 3 & PROVINSI == "S
 transmigrasi_podes_buf <- st_buffer(transmigrasi_podes, dist = 0.1)
 
 # Load raster layers 
-treecover <- raster("download/input/gfc/Hansen_GFC-2017-v1.5_treecover2000_00N_100E.tif")
-lossyear <- raster("download/input/gfc/Hansen_GFC-2017-v1.5_lossyear_00N_100E.tif")
-last <- raster("download/input/gfc/Hansen_GFC-2017-v1.5_last_00N_100E.tif")
-gain <- raster ("download/input/gfc/Hansen_GFC-2017-v1.5_gain_00N_100E.tif")
-first <- raster("download/input/gfc/Hansen_GFC-2017-v1.5_first_00N_100E.tif")
-datamask <- raster("download/input/gfc/Hansen_GFC-2017-v1.5_datamask_00N_100E.tif")
+treecover <- raster("gfc/treecover2000.tif")
+lossyear <- raster("gfc/lossyear.tif")
+last <- raster("gfc/last.tif")
+gain <- raster ("gfc/gain.tif")
+first <- raster("gfc/first.tif")
+datamask <- raster("gfc/datamask.tif")
 
 # Limiting raster to the extent of shapefile
 transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
