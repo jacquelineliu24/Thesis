@@ -33,19 +33,7 @@ gain <- raster ("gfc/gain.tif")
 first <- raster("gfc/first.tif")
 datamask <- raster("gfc/datamask.tif")
 
-# Limiting raster to the extent of shapefile
-transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
-
-lossyear_crop <- crop(lossyear,transmigrasi_podes_buf_sp)
-loss_year_small <- mask(lossyear_crop, mask = transmigrasi_podes_buf_sp)
-
-
-
-plot(lossyear_crop)
-plot(st_geometry(transmigrasi_podes), add = TRUE)
-# The village looks quite small
-
-# Check CRS 
+#Check CRS
 crs(treecover, asText = TRUE)
 crs(lossyear, asText = TRUE)
 crs(last, asText = TRUE)
@@ -54,31 +42,54 @@ crs(first, asText = TRUE)
 crs(datamask, asText = TRUE)
 # CRS is unprojected. All raster files contain same CRS string
 
+#Set mercator projection
+mercator = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+#Corresponding EPSG = 41001
+
+# Limiting raster to the extent of shapefile
+transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
+
+lossyear_crop <- crop(lossyear,transmigrasi_podes_buf_sp)
+loss_year_small <- mask(lossyear_crop, mask = transmigrasi_podes_buf_sp)
+plot(lossyear_crop)
+crs(lossyear_crop)
+
+treecover_crop <- crop(treecover, transmigrasi_podes_buf_sp)
+plot(treecover_crop)
+
+gain_crop <- crop(gain, transmigrasi_podes_buf_sp)
+plot(gain_crop)
+
+plot(st_geometry(transmigrasi_podes), add = TRUE)
+# The village looks quite small
+
+
+#Create Raster stack 
+crs(treecover_crop) <- mercator
+crs(lossyear_crop) <- mercator
+crs(gain_crop) <- mercator
+
+forestcover = stack(treecover_crop, lossyear_crop, gain_crop)
+head(forestcover)
+
+forestcover_sf <- as.data.frame(forestcover, xy = TRUE)
+head(forestcover_sf)
+
+View(forestcover_sf)
+
+summary(forestcover_sf)
+
+colnames(forestcover_sf)[colnames(forestcover_sf)=="x"] <- "Longitude"
+colnames(forestcover_sf)[colnames(forestcover_sf)=="y"] <- "Latitude"
+head(forestcover_sf)
+
+
 # In order to get buffer zones in metres we should use a common projection (later we can also create buffers individually for each UTM zone)
-
-# mercator = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-# transmigrasi_podes <- st_transform(transmigrasi_podes, crs = mercator)
-# lossyear <- projectRaster(lossyear, crs = mercator, method = "ngb")
-
-# Combine raster files 
-sumatra <- merge(lossyear, gain)
+#transmigrasi_podes <- st_transform(transmigrasi_podes, crs = mercator)
+#lossyear <- projectRaster(lossyear, crs = mercator, method = "ngb")
 # SK: We will probably only need lossyear, gain, treecover; lossyear is the most important. 
 # We could use treecover to control for the level of treecover in 2000, but in the literature 
 # this is rather done by using Margono's map for primary forest and restrict the study to that area
 
-# Transform into sf object
-# Check size of 'sumatra'
-res(sumatra)
-ncell(sumatra)
-# Reduce size of 'sumatra' by factor of 10
-# SK: This is not necessary. Since the cell is our unit of observation we want to keep all of them.
-sumatra_red <- aggregate(sumatra, fact = 10, fun = mean)
-res(sumatra_red)
-ncell(sumatra_red)
-
-# Convert 'sumatra_red' into data frame 
 # This is a step we will do at the very end before exporting to Stata (we don't need the geo information then anymore)
 sumatra_sf <- as.data.frame(sumatra_red, xy = TRUE)
-
-# Turn pixels into polygons
-lossyear_sf <- polygonize(lossyear_crop,na.rm = FALSE)
