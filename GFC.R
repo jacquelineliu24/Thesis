@@ -92,4 +92,71 @@ head(forestcover_sf)
 # this is rather done by using Margono's map for primary forest and restrict the study to that area
 
 # This is a step we will do at the very end before exporting to Stata (we don't need the geo information then anymore)
-sumatra_sf <- as.data.frame(sumatra_red, xy = TRUE)
+# Converting the final dataset into a dataframe: sumatra_sf <- as.data.frame(sumatra_red, xy = TRUE)
+
+# 10 Feb 2019: 
+# Construct datasets by Province
+# (1) Jambi 
+jambi <- filter(villages_podes, province_name == "JAMBI")
+
+# Creating a 0.1 arc-degree (~ 50 km) buffer around relevant areas
+# transmigrasi_podes_buf <- st_buffer(transmigrasi_podes, dist = 0.1)
+jambi_buf <- st_buffer(jambi, dist = 0.1)
+
+# Limiting raster to the extent of shapefile
+# transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
+jambi_buf_sp <- as(jambi_buf, "Spatial")
+
+# Experimenting with plotting outline of Jambi province
+jambi_bigpoly <- st_union(jambi)
+plot(jambi_bigpoly)
+
+# Drop Z dimension of polygon
+jambi_bigpoly_XY <- st_zm(jambi_bigpoly, drop = TRUE, what = "ZM")
+
+# Convert polygon into spatial object
+jambipoly <- as(jambi_bigpoly_XY, "Spatial")
+
+# Limiting raster to extent of Jambi province
+lossyear_jambi <- crop(lossyear, jambi_buf_sp)
+lossyear_jambi_mask <- mask(lossyear_jambi, mask = jambipoly)
+lossyear_jambi_crop <- crop(lossyear_jambi_mask, jambipoly)
+plot(lossyear_jambi_mask)
+plot(lossyear_jambi_crop)
+
+treecover_jambi <- crop(treecover, jambi_buf_sp)
+treecover_jambi_mask <- mask(treecover_jambi, mask = jambipoly)
+treecover_jambi_crop <- crop(treecover_jambi_mask, jambipoly)
+plot(treecover_jambi_mask)
+
+gain_jambi <- crop(gain, jambi_buf_sp)
+gain_jambi_mask <- mask(gain_jambi, mask = jambipoly)
+gain_jambi_crop <- crop(gain_jambi_mask, jambipoly)
+plot(gain_jambi_mask)
+
+#Create Raster stack for Jambi
+crs(treecover_jambi_crop) <- mercator
+crs(lossyear_jambi_crop) <- mercator
+crs(gain_jambi_crop) <- mercator
+
+forestcover_jambi = stack(treecover_jambi_crop, lossyear_jambi_crop, gain_jambi_crop)
+head(forestcover_jambi)
+
+forestcover_jambi_sf <- as.data.frame(forestcover_jambi, xy = TRUE)
+head(forestcover_jambi_sf)
+# The dataframe contains many NA values due to whitespace
+
+# Removing NA values from Jambi forestcover dataframe 
+sum(is.na(forestcover_jambi_sf))
+forestcover_jambi_clean <- na.omit(forestcover_jambi_sf)
+sum(is.na(forestcover_jambi_clean))
+# NA values removed
+
+head(forestcover_jambi_clean)
+
+# Rename column names for 'x' and 'y'
+colnames(forestcover_jambi_clean)[colnames(forestcover_jambi_clean)=="x"] <- "Longitude"
+colnames(forestcover_jambi_clean)[colnames(forestcover_jambi_clean)=="y"] <- "Latitude"
+head(forestcover_jambi_clean)
+summary(forestcover_jambi_clean)
+
