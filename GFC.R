@@ -52,6 +52,7 @@ transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
 lossyear_crop <- crop(lossyear,transmigrasi_podes_buf_sp)
 loss_year_small <- mask(lossyear_crop, mask = transmigrasi_podes_buf_sp)
 plot(lossyear_crop)
+
 crs(lossyear_crop)
 
 treecover_crop <- crop(treecover, transmigrasi_podes_buf_sp)
@@ -134,6 +135,10 @@ gain_jambi_mask <- mask(gain_jambi, mask = jambipoly)
 gain_jambi_crop <- crop(gain_jambi_mask, jambipoly)
 plot(gain_jambi_mask)
 
+#Set mercator projection
+mercator = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+#Corresponding EPSG = 41001
+
 #Create Raster stack for Jambi
 crs(treecover_jambi_crop) <- mercator
 crs(lossyear_jambi_crop) <- mercator
@@ -159,4 +164,83 @@ colnames(forestcover_jambi_clean)[colnames(forestcover_jambi_clean)=="x"] <- "Lo
 colnames(forestcover_jambi_clean)[colnames(forestcover_jambi_clean)=="y"] <- "Latitude"
 head(forestcover_jambi_clean)
 summary(forestcover_jambi_clean)
+str(forestcover_jambi_clean)
+
+# Edits as of 14 Feb 2019: 
+# (2) Sumatra Selantan
+sumsel <- filter(villages_podes, province_name == "SUMATERA SELATAN")
+
+# Creating a 0.1 arc-degree (~ 50 km) buffer around relevant areas
+# transmigrasi_podes_buf <- st_buffer(transmigrasi_podes, dist = 0.1)
+sumsel_buf <- st_buffer(sumsel, dist = 0.1)
+
+# Limiting raster to the extent of shapefile
+# transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
+sumsel_buf_sp <- as(sumsel_buf, "Spatial")
+
+# Experimenting with plotting outline of Sumatra Selatan province
+sumsel_bigpoly <- st_union(sumsel)
+plot(sumsel_bigpoly)
+
+# Drop Z dimension of polygon
+sumsel_bigpoly_XY <- st_zm(sumsel_bigpoly, drop = TRUE, what = "ZM")
+
+# Convert polygon into spatial object
+sumselpoly <- as(sumsel_bigpoly_XY, "Spatial")
+plot(sumselpoly, axes = TRUE)
+
+# Limiting raster to extent of Sumatra Selatan province
+lossyear_sumsel <- crop(lossyear, sumsel_buf_sp)
+lossyear_sumsel_mask <- mask(lossyear_sumsel, mask = sumselpoly)
+lossyear_sumsel_crop <- crop(lossyear_sumsel_mask, sumselpoly)
+plot(lossyear_sumsel_mask)
+plot(lossyear_sumsel_crop)
+
+treecover_sumsel <- crop(treecover, sumsel_buf_sp)
+treecover_sumsel_mask <- mask(treecover_sumsel, mask = sumselpoly)
+treecover_sumsel_crop <- crop(treecover_sumsel_mask, sumselpoly)
+plot(treecover_sumsel_crop)
+
+gain_sumsel <- crop(gain, sumsel_buf_sp)
+gain_sumsel_mask <- mask(gain_sumsel, mask = sumselpoly)
+gain_sumsel_crop <- crop(gain_sumsel_mask, sumselpoly)
+plot(gain_sumsel_crop)
+
+par(mfrow = c(2,2))
+plot(lossyear_sumsel_crop)
+plot(treecover_sumsel_crop)
+plot(gain_sumsel_crop)
+
+#Set mercator projection
+mercator = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+#Corresponding EPSG = 41001
+
+#Create Raster stack for Sumatra Selatan
+crs(treecover_sumsel_crop) <- mercator
+crs(lossyear_sumsel_crop) <- mercator
+crs(gain_sumsel_crop) <- mercator
+
+forestcover_sumsel = stack(treecover_sumsel_crop, lossyear_sumsel_crop, gain_sumsel_crop)
+head(forestcover_sumsel)
+
+forestcover_sumsel_sf <- as.data.frame(forestcover_sumsel, xy = TRUE)
+head(forestcover_sumsel_sf)
+# The dataframe contains many NA values due to whitespace
+
+# Removing NA values from Sumatra Selatan forestcover dataframe 
+sum(is.na(forestcover_sumsel_sf))
+forestcover_sumsel_clean <- na.omit(forestcover_sumsel_sf)
+sum(is.na(forestcover_sumsel_clean))
+# NA values removed
+
+head(forestcover_sumsel_clean)
+
+# Rename column names for 'x' and 'y'
+colnames(forestcover_sumsel_clean)[colnames(forestcover_sumsel_clean)=="x"] <- "Longitude"
+colnames(forestcover_sumsel_clean)[colnames(forestcover_sumsel_clean)=="y"] <- "Latitude"
+head(forestcover_sumsel_clean)
+summary(forestcover_sumsel_clean)
+str(forestcover_sumsel_clean)
+
+# (3) Riau
 
