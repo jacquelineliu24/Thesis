@@ -35,26 +35,6 @@ mercator = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +un
 
 jambi <- filter(IDN, NAME_1=="Jambi")
 
-# Creating a 0.1 arc-degree (~ 50 km) buffer around relevant areas
-# transmigrasi_podes_buf <- st_buffer(transmigrasi_podes, dist = 0.1)
-#jambi_buf <- st_buffer(jambi, dist = 0.1)
-
-# Limiting raster to the extent of shapefile
-# transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
-#jambi_buf_sp <- as(jambi_buf, "Spatial")
-
-# Experimenting with plotting outline of Jambi province
-#jambi_bigpoly <- st_union(jambi)
-#plot(jambi_bigpoly)
-
-# Drop Z dimension of polygon
-#jambi_bigpoly_XY <- st_zm(jambi_bigpoly, drop = TRUE, what = "ZM")
-
-# Convert polygon into spatial object
-#jambipoly <- as(jambi_bigpoly_XY, "Spatial")
-
-# Limiting raster to extent of Jambi province
-#lossyear_jambi <- crop(lossyear, jambi_buf_sp)
 lossyear_jambi_mask <- mask(lossyear, mask = jambi)
 lossyear_jambi_crop <- crop(lossyear_jambi_mask, jambi)
 plot(lossyear_jambi_crop)
@@ -110,93 +90,10 @@ plot(lossyear_jprot_crop)
 #summary(forestcover_jambi_clean)
 #str(forestcover_jambi_clean)
 
-# (2) Sumatra Selantan
-sumsel <- filter(IDN, NAME_1=="Sumatera Selatan")
-
-# Creating a 0.1 arc-degree (~ 50 km) buffer around relevant areas
-# transmigrasi_podes_buf <- st_buffer(transmigrasi_podes, dist = 0.1)
-#sumsel_buf <- st_buffer(sumsel, dist = 0.1)
-
-# Limiting raster to the extent of shapefile
-# transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
-#sumsel_buf_sp <- as(sumsel_buf, "Spatial")
-
-# Experimenting with plotting outline of Sumatra Selatan province
-#sumsel_bigpoly <- st_union(sumsel)
-#plot(sumsel_bigpoly)
-
-# Drop Z dimension of polygon
-sumsel_bigpoly_XY <- st_zm(sumsel_bigpoly, drop = TRUE, what = "ZM")
-
-# Convert polygon into spatial object
-sumselpoly <- as(sumsel_bigpoly_XY, "Spatial")
-plot(sumselpoly, axes = TRUE)
-
-# Limiting raster to extent of Sumatra Selatan province
-lossyear_sumsel <- crop(lossyear, sumsel_buf_sp)
-lossyear_sumsel_mask <- mask(lossyear_sumsel, mask = sumselpoly)
-lossyear_sumsel_crop <- crop(lossyear_sumsel_mask, sumselpoly)
-plot(lossyear_sumsel_mask)
-plot(lossyear_sumsel_crop)
-
-treecover_sumsel <- crop(treecover, sumsel_buf_sp)
-treecover_sumsel_mask <- mask(treecover_sumsel, mask = sumselpoly)
-treecover_sumsel_crop <- crop(treecover_sumsel_mask, sumselpoly)
-plot(treecover_sumsel_crop)
-
-gain_sumsel <- crop(gain, sumsel_buf_sp)
-gain_sumsel_mask <- mask(gain_sumsel, mask = sumselpoly)
-gain_sumsel_crop <- crop(gain_sumsel_mask, sumselpoly)
-plot(gain_sumsel_crop)
-
-#Create Raster stack for Sumatra Selatan
-crs(treecover_sumsel_crop) <- mercator
-crs(lossyear_sumsel_crop) <- mercator
-crs(gain_sumsel_crop) <- mercator
-
-forestcover_sumsel = stack(treecover_sumsel_crop, lossyear_sumsel_crop, gain_sumsel_crop)
-head(forestcover_sumsel)
-
-forestcover_sumsel_sf <- as.data.frame(forestcover_sumsel, xy = TRUE)
-head(forestcover_sumsel_sf)
-# The dataframe contains many NA values due to whitespace
-
-# Removing NA values from Sumatra Selatan forestcover dataframe 
-sum(is.na(forestcover_sumsel_sf))
-forestcover_sumsel_clean <- na.omit(forestcover_sumsel_sf)
-sum(is.na(forestcover_sumsel_clean))
-# NA values removed
-
-head(forestcover_sumsel_clean)
-
-# Rename column names for 'x' and 'y'
-colnames(forestcover_sumsel_clean)[colnames(forestcover_sumsel_clean)=="x"] <- "Longitude"
-colnames(forestcover_sumsel_clean)[colnames(forestcover_sumsel_clean)=="y"] <- "Latitude"
-head(forestcover_sumsel_clean)
-summary(forestcover_sumsel_clean)
-str(forestcover_sumsel_clean)
-
-# (3) Riau
+# (2) Riau
 riau <- filter(villages_podes, province_name == "RIAU")
 
-# Creating a 0.1 arc-degree (~ 50 km) buffer around relevant areas
-# transmigrasi_podes_buf <- st_buffer(transmigrasi_podes, dist = 0.1)
-riau_buf <- st_buffer(riau, dist = 0.1)
-
-# Limiting raster to the extent of shapefile
-# transmigrasi_podes_buf_sp <- as(transmigrasi_podes_buf,"Spatial")
-riau_buf_sp <- as(riau_buf, "Spatial")
-
-# Experimenting with plotting outline of Sumatra Selatan province
-riau_bigpoly <- st_union(riau)
-plot(riau_bigpoly)
-
-# Drop Z dimension of polygon
-riau_bigpoly_XY <- st_zm(riau_bigpoly, drop = TRUE, what = "ZM")
-
-# Convert polygon into spatial object
-riaupoly <- as(riau_bigpoly_XY, "Spatial")
-plot(riaupoly, axes = TRUE)
+# Load raster layers (different tile from Jambi)
 
 # Limiting raster to extent of Riau province
 lossyear_riau <- crop(lossyear, riau_buf_sp)
@@ -246,8 +143,4 @@ head(forestcover_riau_clean)
 summary(forestcover_riau_clean)
 str(forestcover_riau_clean)
 
-test <- st_read("Test/test.shp")
-head(test)
-
-plot(lossyear_jambi_crop)
-plot(test, add = TRUE)
+# Limiting raster to study areas in Riau
