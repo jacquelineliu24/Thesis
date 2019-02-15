@@ -25,7 +25,7 @@ library(ggplot2)
 
 ```{r}
 # Load village shape file
-villages2013 <- st_read("villages/podes_bps2014/podes_bps2014.shp")
+villages2013 <- st_read("./villages/podes_bps2014/podes_bps2014.shp")
 
 # Load PODES panel data
 load("podes/PODES_panel.RData") 
@@ -284,4 +284,8 @@ colnames(forestcover_riau_clean)[colnames(forestcover_riau_clean)=="y"] <- "Lati
 head(forestcover_riau_clean)
 summary(forestcover_riau_clean)
 str(forestcover_riau_clean)
+```
+
+```{r}
+IDN <- st_read("gadm36_IDN_shp/gadm36_IDN_1.shp")
 ```

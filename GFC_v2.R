@@ -17,13 +17,6 @@ library(tidyverse)
 IDN <- st_read("gadm36_IDN_shp/gadm36_IDN_1.shp")
 plot(st_geometry(IDN), col = "grey")
 
-# Load village shape file
-#villages2013 <- st_read("./villages/podes_bps2014/podes_bps2014.shp")
-#plot(st_geometry(villages2013), lwd = 0.001)
-#load("podes/PODES_panel.RData") 
-
-#villages_podes <- inner_join(villages2013,PODES.panel,by = c("ID2013" = "Id2014"))
-
 # Load raster layers 
 treecover <- raster("gfc/treecover2000.tif")
 lossyear <- raster("gfc/lossyear.tif")
