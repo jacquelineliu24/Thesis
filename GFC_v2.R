@@ -56,8 +56,11 @@ crs(gain_jambi_crop) <- mercator
 
 forestcover_jambi = stack(treecover_jambi_crop, lossyear_jambi_crop, gain_jambi_crop)
 head(forestcover_jambi)
+class(forestcover_jambi)
 
+# Coerce raster to dataframe
 forestcover_jambi_sf <- as.data.frame(forestcover_jambi, xy = TRUE)
+class(forestcover_jambi_sf)
 head(forestcover_jambi_sf)
 # The dataframe contains many NA values due to whitespace
 
@@ -69,128 +72,94 @@ sum(is.na(forestcover_jambi_clean))
 
 head(forestcover_jambi_clean)
 
-# Add column for Province
-forestcover_jambi_clean$Province <- c("Jambi")
-
-# Save dataset
+# Save dataframe
 saveRDS(forestcover_jambi_clean, file = "jambi.Rda")
+jambi.data <- readRDS("jambi.Rda")
+
+# Convert dataframe to sf object
+jambi_sf <- st_as_sf(jambi.data, coords = c("x", "y"), crs = 41001)
+head(jambi_sf)
+plot(st_geometry(jambi_sf))
+
+# Add column for Province
+jambi_sf$Province <- c("Jambi")
+
+# Save sf object
+st_write(jambi_sf, "jambi.shp")
 
 # Limiting raster to study areas in Jambi
 protection <- st_read("Polygons/Jambi_1_GR_Tamonarang_Protection.shp")
 production <- st_read("Polygons/Jambi_1_GR_Tamonarang_Production.shp")
 hd <- st_read("Polygons/Jambi_1_GR_Tamonarang_HD.shp")
 
-# Protection area
-lossyear_jprot <- mask(lossyear_jambi_crop, mask = protection)
-lossyear_jprot_crop <- crop(lossyear_jprot, protection)
-plot(lossyear_jprot_crop)
+protection <- st_transform(protection, crs = mercator)
+hd <- st_transform(hd, crs = mercator)
 
-treecover_jprot <- mask(treecover_jambi_crop, mask = protection)
-treecover_jprot_crop <- crop(treecover_jprot, protection)
-plot(treecover_jprot_crop)
+plot(st_geometry(protection), border = "black")
+plot(st_geometry(hd), border = "black", add = TRUE)
+plot(st_geometry(jambi_sf), pch = 16, col = "forest green", add = TRUE)
 
-gain_jprot <- mask(gain_jambi_crop, mask = protection)
-gain_jprot_crop <- crop(gain_jprot, protection)
-plot(gain_jprot_crop)
+hd_box <- st_make_grid(hd, n = 1)
+protection_box <- st_make_grid(protection, n = 1)
+land_title_box <- st_union(hd_box, protection_box)
 
-# Create Raster stack for protection area
-crs(lossyear_jprot_crop) <- mercator
-crs(treecover_jprot_crop) <- mercator
-crs(gain_jprot_crop) <- mercator 
 
-forestcover_jprot = stack(lossyear_jprot_crop, treecover_jprot_crop, gain_jprot_crop)
-forestcover_jprot_sf <- as.data.frame(forestcover_jprot, xy = TRUE)
+jambi_intersects <- st_intersects(land_title_box, jambi_sf)
 
-sum(is.na(forestcover_jprot_sf))
-forestcover_jambi_clean <- na.omit(forestcover_jprot_sf)
-sum(is.na(forestcover_jprot_clean))
 
-# Add column(s) to code Forest Area type and Land title type 
-forestcover_jprot_clean$Province <- c("Jambi")
-forestcover_jprot_clean$Forest_Area <- c("Protection")
-forestcover_jprot_clean$Concession <- c("NA")
-forestcover_jprot_clean$Land_Title <- c("State")
 
-# Save as separate dataset
-head(forestcover_jprot_clean)
-saveRDS(forestcover_jprot_clean, file = "jambi_protection.Rda")
+# Create buffer around border
+# Creating a 0.1 arc-degree (~ 50 km) buffer around relevant areas
+#jambi_buf <- st_buffer(jambi, dist = 0.1)
+#jambi_buf_sp <- as(jambi_buf, "Spatial")
 
-# Production area 
-lossyear_jprod <- mask(lossyear_jambi_crop, mask = production)
-lossyear_jprod_crop <- mask(lossyear_jprod, mask = production)
-plot(lossyear_jprod_crop)
+protection_buf <- st_buffer(protection, dist = 0.1)
+protection_buf_sp <- as(protection_buf, "Spatial")
 
-treecover_jprod <- mask(treecover_jambi_crop, mask = production)
-treecover_jprod_crop <- crop(treecover_jprot, production)
-plot(treecover_jprod_crop)
+hd_buf <- st_buffer(hd, dist = 0.1)
+hd_buf_sp <- as(hd_buf, "Spatial")
 
-gain_jprod <- mask(gain_jambi_crop, mask = production)
-gain_jprod_crop <- crop(gain_jprod, production)
-plot(gain_jprod_crop)
+buffer <- st_union(protection_buf_sp, hd_buf_sp)
 
-# Create Raster stack for production area
-crs(lossyear_jprod_crop) <- mercator
-crs(treecover_jprod_crop) <- mercator
-crs(gain_jprod_crop) <- mercator 
+lossyear_jambi <- mask(lossyear, mask = buffer)
+lossyear_jambi_crop <- crop(lossyear_jambi, buffer) 
 
-forestcover_jprod = stack(lossyear_jprod_crop, treecover_jprod_crop, gain_jprod_crop)
-forestcover_jprod_sf <- as.data.frame(forestcover_jprod, xy = TRUE)
+treecover_jambi <- mask(treecover, mask = buffer)
+treecover_jambi_crop <- crop(treecover_jambi, buffer)
 
-sum(is.na(forestcover_jprod_sf))
-forestcover_jambi_clean <- na.omit(forestcover_jprod_sf)
-sum(is.na(forestcover_jprod_clean))
+gain_jambi <- mask(gain, mask = buffer)
+gain_jambi_crop <- crop(gain_jambi, buffer)
 
-# Add column(s) to code Province, Forest Area type, Concession type and Land title type 
-forestcover_jprod_clean$Province <- c("Jambi")
-forestcover_jprod_clean$Forest_Area <- c("Production")
-forestcover_jprod_clean$Concession <- c("NA")
-forestcover_jprod_clean$Land_Title <- c("State")
+# Create Raster stack for buffer area
+crs(lossyear_jambi_crop) <- mercator
+crs(treecover_jambi_crop) <- mercator
+crs(gain_jambi_crop) <- mercator 
 
-# Save as separate dataset
-head(forestcover_jprod_clean)
-saveRDS(forestcover_jprod_clean, file = "jambi_production.Rda")
+forestcover_buf = stack(lossyear_jambi_crop, treecover_jambi_crop, gain_jambi_crop)
+forestcover_buf_df <- as.data.frame(forestcover_buf, xy = TRUE)
 
-# HD area
-lossyear_hd <- mask(lossyear_jambi_crop, mask = hd)
-lossyear_hd_crop <- mask(lossyear_hd, mask = hd)
-plot(lossyear_hd_crop)
+sum(is.na(forestcover_buf_df))
+forestcover_buf_df_clean <- na.omit(forestcover_buf_df)
+sum(is.na(forestcover_buf_df_clean)) 
 
-treecover_hd <- mask(treecover_jambi_crop, mask = hd)
-treecover_hd_crop <- mask(treecover_hd, mask = hd)
-plot(treecover_hd_crop)
+# Save dataframe
+saveRDS(forestcover_buf_df_clean, file = "jambi_Tamonarang.Rda")
+jambi_tam.data <- readRDS("jambi_Tamonarang.Rda")
 
-gain_hd <- mask(gain_jambi_crop, mask = hd)
-gain_hd_crop <- mask(gain_hd, mask = hd)
-plot(gain_hd_crop)
+# Convert dataframe to sf object
+jambi_tam_sf <- st_as_sf(jambi_tam.data, coords = c("x", "y"), crs = 41001)
+head(jambi_tam_sf)
 
-# Create Raster stack for production area
-crs(lossyear_hd_crop) <- mercator
-crs(treecover_hd_crop) <- mercator
-crs(gain_hd_crop) <- mercator 
+# Limit sf object to polygons 
+plot(st_geometry(protection), border = "black")
+plot(st_geometry(hd), border = "black", add = TRUE)
+plot(st_geometry(jambi_tam_sf), pch = 16, col = "forest green", add = TRUE)
+st_bbox(jambi_tam_sf)
 
-forestcover_hd = stack(lossyear_hd_crop, treecover_hd_crop, gain_hd_crop)
-forestcover_hd_sf <- as.data.frame(forestcover_hd, xy = TRUE)
+st_intersects()
 
-sum(is.na(forestcover_hd_sf))
-forestcover_hd_clean <- na.omit(forestcover_hd_sf)
-sum(is.na(forestcover_hd_clean))
 
-# Add column(s) to code Forest Area type and Land title type 
-forestcover_hd_clean$Province <- c("Jambi")
-forestcover_hd_clean$Forest_Area <- c("Protection")
-forestcover_hd_clean$Concession <- c("NA")
-forestcover_hd_clean$Land_Title <- c("HD")
 
-# Save as separate dataset
-head(forestcover_hd_clean)
-saveRDS(forestcover_hd_clean, file = "jambi_hd.Rda")
-
-# Rename column names for 'x' and 'y'
-#colnames(forestcover_jambi_clean)[colnames(forestcover_jambi_clean)=="x"] <- "Longitude"
-#colnames(forestcover_jambi_clean)[colnames(forestcover_jambi_clean)=="y"] <- "Latitude"
-#head(forestcover_jambi_clean)
-#summary(forestcover_jambi_clean)
-#str(forestcover_jambi_clean)
 
 # (2) Riau
 riau <- filter(villages_podes, province_name == "RIAU")
