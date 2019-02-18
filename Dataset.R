@@ -13,6 +13,7 @@ library(spex)
 library(dplyr)
 library(tidyverse)
 library(rgeos)
+library(geosphere)
 
 # Load raster layers 
 treecover <- raster("gfc/treecover2000.tif")
@@ -36,30 +37,6 @@ mercator = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +un
 prot <- st_read("Polygons/Jambi_1_GR_Tamonarang_Protection.shp")
 prod <- st_read("Polygons/Jambi_1_GR_Tamonarang_Production.shp")
 hud <- st_read("Polygons/Jambi_1_GR_Tamonarang_HD.shp")
-
-#protection <- st_transform(prot, crs = 41001)
-#hd <- st_transform(hud, crs = 41001)
-
-options(sf_max.plot=1)
-plot(st_geometry(jambi))
-plot(st_geometry(hd), add = TRUE)
-plot(st_geometry(protection), add = TRUE)
-
-land_titles <- st_union(protection, hd)
-land_titles$id <- colnames("protection")
-land_titles$id.1 <- colnames("hd")
-head(land_titles)
-
-options(sf_max.plot=1)
-plot(st_geometry(jambi))
-plot(st_geometry(land_titles), add = TRUE)
-
-land_titles_box <- st_make_grid(land_titles, n = 1)
-
-options(sf_max.plot=1)
-plot(st_geometry(jambi))
-plot(st_geometry(land_titles), add = TRUE)
-plot(land_titles_box, add = TRUE)
 
 # Crop raster layers to land_titles polygon
 lossyear_prot <- mask(lossyear, mask = prot)
@@ -131,26 +108,32 @@ plot(st_geometry(hud), border = "black", add = TRUE)
 
 tamonarang_sf$in_HD <- st_intersects(tamonarang_sf, hud, sparse = FALSE)
 head(tamonarang_sf)
-tamonarang_sf_1 <- tamonarang_sf[,-(6), drop = FALSE]
-head(tamonarang_sf_1)
-tamonarang_sf_1$forest_area_ENG <- c("Protection")
-tamonarang_sf_1$forest_area <- c("Hutan Lindung")
-head(tamonarang_sf_1)
+tamonarang_sf$forest_area_ENG <- c("Protection")
+tamonarang_sf$forest_area <- c("Hutan Lindung")
+head(tamonarang_sf)
 
 # Identifying the border between polygons 
 prot_sp <- as(prot, Class = "Spatial")
 hud_sp <- as(hud, Class = "Spatial")
 
-land_titles <- st_union(prot, hud)
-land_titles_sp <- as(land_titles, Class = "Spatial")
+border = st_intersection(prot, hud)
+border_sp <- as(border, Class = "Spatial")
 
-border = gDifference(as(land_titles_sp, "SpatialLines"), as(gUnaryUnion(prot_sp, id = NULL), "SpatialLines"), byid = TRUE)
-border1 = gNearestPoints(as(prot_sp, "SpatialLines"), as(hud_sp, "SpatialLines"))
-head(border1)
-# Only returned 1 point - polygons may not actually be adjacent to each other? 
+# Convert border from polygon to spatial line
+border_line <- as(border_sp, Class = "SpatialLines")
+
+# Calculate length of border
+SpatialLinesLengths(border_line)
+# The border is 5km long
 
 # Checking the plots
 plot(st_geometry(tamonarang_sf), col = "forest green", axes = TRUE) 
 plot(st_geometry(prot), border = "black", add = TRUE)
 plot(st_geometry(hud), border = "black", add = TRUE)
-plot(border1, col = "red", lwd = 2, add = TRUE)
+plot(border_line, col = "red", add = TRUE)
+
+# Calculating distance from border 
+# Testing with 1 point 
+test_matrix <- tamonarang[1, -(3:5)]
+test <- dist2Line(test_matrix, border_line)
+test
