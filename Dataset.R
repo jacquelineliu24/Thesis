@@ -38,6 +38,10 @@ prot <- st_read("Polygons/Jambi_1_GR_Tamonarang_Protection.shp")
 prod <- st_read("Polygons/Jambi_1_GR_Tamonarang_Production.shp")
 hud <- st_read("Polygons/Jambi_1_GR_Tamonarang_HD.shp")
 
+# Create buffer around study area polygons 
+land_titles_merge <- merge(prot, hud)
+land_titles_buf <- st_buffer(land_titles_merge, dist = )
+
 # Crop raster layers to land_titles polygon
 lossyear_prot <- mask(lossyear, mask = prot)
 lossyear_prot_crop <- crop(lossyear_prot, prot)
@@ -134,6 +138,22 @@ plot(border_line, col = "red", add = TRUE)
 
 # Calculating distance from border 
 # Testing with 1 point 
-test_matrix <- tamonarang[1, -(3:5)]
+test_matrix <- tamonarang[75000:76000, -(3:5)]
 test <- dist2Line(test_matrix, border_line)
+summary(test)
 test
+
+treecovertest <- tamonarang[,-(4:5)]
+treecovertest1 <- dist2Line(treecovertest[,-3], border_line)
+head(treecovertest1)
+distance <- treecovertest1[,1]
+plot(distance)
+
+y <- treecovertest[, 3]
+x <- distance
+summary(x)
+rdplot(y, x, c = 0.5)
+rdrobust(y, x, c = 0.5)
+# There could be an error with calculating distance - distances are all positive 
+# Possible solutions: split the dataset into left and right, and calculate distances separately? 
+
