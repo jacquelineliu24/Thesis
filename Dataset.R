@@ -143,17 +143,28 @@ test <- dist2Line(test_matrix, border_line)
 summary(test)
 test
 
-treecovertest <- tamonarang[,-(4:5)]
-treecovertest1 <- dist2Line(treecovertest[,-3], border_line)
-head(treecovertest1)
-distance <- treecovertest1[,1]
-plot(distance)
+#treecovertest <- tamonarang[,-(4:5)]
+#treecovertest1 <- dist2Line(treecovertest[,-3], border_line)
+#head(treecovertest1)
+#distance <- treecovertest1[,1]
+#plot(distance)
 
-y <- treecovertest[, 3]
-x <- distance
-summary(x)
-rdplot(y, x, c = 0.5)
-rdrobust(y, x, c = 0.5)
+#y <- treecovertest[, 3]
+#x <- distance
+#summary(x)
+#rdplot(y, x, c = 0.5)
+#rdrobust(y, x, c = 0.5)
 # There could be an error with calculating distance - distances are all positive 
 # Possible solutions: split the dataset into left and right, and calculate distances separately? 
+
+# Convert tamonarang_sf to dataframe 
+tamonarang.df <- as.data.frame(tamonarang_sf, xy = TRUE)
+tamonarang.df$distance <- treecovertest1[,1]
+tamonarang.df$distrelative <- ifelse(tamonarang.df$in_HD==TRUE, tamonarang.df$distance, -tamonarang.df$distance)
+summary(tamonarang.df$distrelative)
+
+y <- tamonarang.df$treecover2000
+x <- tamonarang.df$distrelative
+rdplot(y, x, c = 0, title = "Baseline RD Plot", x.label = "Distance to the border", y.label = "Forest cover in 2000")
+
 
