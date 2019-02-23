@@ -166,5 +166,42 @@ summary(tamonarang.df$distrelative)
 y <- tamonarang.df$treecover2000
 x <- tamonarang.df$distrelative
 rdplot(y, x, c = 0, title = "Baseline RD Plot", x.label = "Distance to the border", y.label = "Forest cover in 2000")
+robust <- rdrobust(y, x, c = 0, all)
 
+# Experimenting with different bin sizes 
+# Evenly-spaced bins
+plot_ebin <- rdplot(y, x, c = 0, binselect = "es")
+summary(plot_ebin)
 
+# Quantile-spaced bins
+plot_qbin <- rdplot(y, x, c = 0, binselect = "qs")
+summary(plot_qbin)
+
+plot_bin <- rdplot(y, x, c = 0, binselect = "qsmv")
+summary(plot_bin)
+
+# Create deforestation variable 
+# Deforestation defined as average rate of forest cover loss (2000-2017)
+# As mentioned in Puyravaud (2003), we can use average rate of change formula
+tamonarang_sf$treecover2017 <- ifelse(tamonarang_sf$lossyear > 0, 0, tamonarang_sf$treecover2000)
+tamonarang_sf$rate <- -(tamonarang_sf$treecover2017-tamonarang_sf$treecover2000)/17
+
+library(ggthemes)
+library(gridExtra)
+# Density plots for treecover in 2000 vs. 2017 (in %)
+ggplot(tamonarang_sf, aes(treecover2000)) + geom_density(col = "forest green") + theme_tufte()
+ggplot(tamonarang_sf, aes(treecover2017)) + geom_density(col = "red") + theme_tufte()
+t2 <- ggplot(tamonarang_sf, aes(in_HD, treecover2017)) + geom_violin(scale = "area", color = "white", aes(fill = in_HD)) + theme_tufte()
+
+t1 <- ggplot(tamonarang_sf, aes(in_HD, treecover2000)) + geom_violin(scale = "area", color = "white", aes(fill = in_HD)) + theme_tufte()
+
+t2 <- t2 + coord_flip()
+t1 <- t1 + coord_flip() 
+grid.arrange(t1, t2, nrow = 2)
+
+# Rate of forest cover loss 
+t3 <- ggplot(tamonarang_sf, aes(rate)) + geom_dotplot(color = "white", alpha = 0.5) + theme_tufte()
+t3 + facet_grid(.~in_HD)
+
+t4 <- ggplot(tamonarang_sf, aes(rate)) + geom_histogram(alpha = 0.5) + theme_tufte()
+t4 + facet_grid(.~in_HD)
