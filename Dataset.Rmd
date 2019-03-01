@@ -1,4 +1,67 @@
-# Hansen Global Forest Change Dataset (2000-2017)
+---
+title: "Construction of Dataset for Master Thesis Project AY18-19"
+author: "Jacqueline Liu and Mhabeni Bona"
+date: "28/02/2019"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This R notebook documents the dataset construction process for a Master Thesis Project (AY18-19) at the Hertie School of Governance. 
+
+**About the project**: The project is titled, "Sustainable management of Indonesia's forests: Does it matter who owns the land?"
+
+We investigate land use policies and property rights in Indonesia, with respect to forest cover loss. Given Indonesia’s legacy of and tenure grievances, we also conduct a qualitative analysis of the political and social dynamics behind social forestry.   
+
+**Research question**: Does the type of land tenure title affect deforestation rates in Indonesia? What are the mechanisms that facilitate these outcomes?
+
+**Hypothesis**: We posit that land managed by local communities demonstrates lower deforestation rates. Our hypothesis is: Regions managed with social forestry permits (SFPs) will have less forest cover loss than regions not managed with SFPs (i.e. industrial production permits or state forest).
+
+$$H_0 : \beta_{SFP} = \beta_{nonSFP} = 0$$
+
+$$H_1 : \beta_{SFP} \neq \beta_{nonSFP}$$
+
+Besides a map overlay, we test the hypothesis using a difference-in-regression discontinuity (DiRD) design. The main estimation equation is: 
+
+$$\Delta Y_{i}  =  \beta_0  +  \tau (Distance_i)  + \beta_1 (Social_i)  + \epsilon_i $$
+
+## Dataset and sources
+
+We constructed a dataset to contain variables relating to forest cover and rate of forest cover loss (our outcome variable), as well as variables relating to administrative boundaries (predictor) and the relative distance of a pixel to the border of interest (runnning variable). 
+
+The source for the data on forest cover is taken from Hansen et al.'s (2017) global forest cover change dataset: 
+
+Hansen, M. C., P. V. Potapov, R. Moore, M. Hancher, S. A. Turubanova, A. Tyukavina, D. Thau, S. V. Stehman, S. J. Goetz, T. R. Loveland, A. Kommareddy, A. Egorov, L. Chini, C. O. Justice, and J. R. G. Townshend. 2013. “High-Resolution Global Maps of 21st-Century Forest Cover Change.” Science 342 (15 November): 850–53. Data available on-line from: http://earthenginepartners.appspot.com/science-2013-global-forest.
+
+Our main variables are: 
+
+* `treecover2000`: % of treecover recorded by satellite imaging in one pixel. 
+
+* `lossyear`: factor indicating 0 if there was no tree cover loss and taking on values 1 to 17 corresponding to a loss event in years 2001 to 2017. 
+
+* `gain`: factor indicating 0 if there was no tree cover gain and 1 if there was a gain event. Data is only available up to 2012. 
+
+* `pre`: % of treecover at the end of 2008 (pre-treatment).
+
+* `prerate`: % rate of change in forest cover between 2000 and 2008. 
+
+* `post`: % of treecover at the end of 2017 (post-treatment). 
+
+* `postrate`: % rate of change in forest cover between 2009 and 2017. 
+
+* `in_HD`: logical indicating if the pixel is in an SFP permit area or not. 
+
+* `dist`: absolute distance of a pixel from the border of interest. 
+
+* `relativedist`: relative distance of a pixel from the border of interest. Positive values indicate that the pixel is in an SFP permit area, while negative values indicate that the pixel is not in an SFP permit area. 
+
+###Construction of outcome variable: forest cover loss 
+
+```{r Directory, message=FALSE, warning=FALSE, paged.print=FALSE}
 # Set working directory
 setwd("/Users/jacquelineliu/Desktop/Thesis_Data/Input")
 
@@ -14,8 +77,11 @@ library(dplyr)
 library(tidyverse)
 library(rgeos)
 library(geosphere)
+```
 
-# Load raster layers 
+```{r Input, message=FALSE, warning=FALSE, paged.print=FALSE}
+# Load input
+# Load raster layers
 treecover <- raster("gfc/treecover2000.tif")
 lossyear <- raster("gfc/lossyear.tif")
 last <- raster("gfc/last.tif")
@@ -23,26 +89,35 @@ gain <- raster ("gfc/gain.tif")
 first <- raster("gfc/first.tif")
 datamask <- raster("gfc/datamask.tif")
 
-#Set mercator projection
-mercator = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-#Corresponding EPSG = 41001
-
-#IDN <- st_read("gadm36_IDN_shp/gadm36_IDN_1.shp")
-#idn <- st_transform(IDN, crs = 41001)
-#head(idn)
-#jambi <- filter(idn, NAME_1 == "Jambi")
-#head(jambi)
-
-# Load study area polygons
+# Load study area polygons 
+# (T) Test: Jambi - Tamonarang 
 prot <- st_read("Polygons/Jambi_1_GR_Tamonarang_Protection.shp")
 prod <- st_read("Polygons/Jambi_1_GR_Tamonarang_Production.shp")
 hud <- st_read("Polygons/Jambi_1_GR_Tamonarang_HD.shp")
 
-# Create buffer around study area polygons 
-land_titles_merge <- merge(prot, hud)
-land_titles_buf <- st_buffer(land_titles_merge, dist = )
+# (1) Study area 1: Jambi - Tanahabang 
+tana.prot <- 
+tana.prod <-
+tana.hud
 
-# Crop raster layers to land_titles polygon
+```
+
+```{r}
+#Set mercator projection
+mercator = "+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+#Corresponding EPSG = 41001
+```
+
+
+####Test area 1: Jambi - Tamonarang 
+The following code chunks detail the process for creating the dataset for the test study area near Tamonarang in Jambi Province. 
+
+```{r}
+# Create raster stack(s) for study area(s)
+
+# Jambi - Tamonarang 
+# Crop raster layers to study area polygons 
+# Lossyear
 lossyear_prot <- mask(lossyear, mask = prot)
 lossyear_prot_crop <- crop(lossyear_prot, prot)
 plot(lossyear_prot_crop)
@@ -53,6 +128,7 @@ lossyear_hd_crop <- crop(lossyear_hd, hud)
 lossyear_tam <- merge(lossyear_prot_crop, lossyear_hd_crop)
 plot(lossyear_tam)
 
+# Treecover2000
 treecover_prot <- mask(treecover, mask = prot)
 treecover_prot_crop <- crop(treecover_prot, prot)
 
@@ -62,6 +138,7 @@ treecover_hd_crop <- crop(treecover_hd, hud)
 treecover_tam <- merge(treecover_prot_crop, treecover_hd_crop)
 plot(treecover_tam)
 
+# Gain
 gain_prot <- mask(gain, mask = prot)
 gain_prot_crop <- crop(gain_prot, prot)
 
@@ -71,7 +148,7 @@ gain_hd_crop <- crop(gain_hd, hud)
 gain_tam <- merge(gain_prot_crop, gain_hd_crop)
 plot(gain_tam)
 
-# Create raster stack
+# Create raster stack and assign projection
 crs(lossyear_tam) <- mercator
 crs(treecover_tam) <- mercator
 crs(gain_tam) <- mercator
@@ -92,7 +169,11 @@ head(forestcover_tamonarang)
 saveRDS(forestcover_tamonarang, file = "tamonarang.Rda")
 tamonarang <- readRDS("tamonarang.Rda")
 head(tamonarang)
+```
 
+
+```{r}
+# Creating the predictor and running variables 
 # Convert dataframe to sf object
 # Changing projection to CRS = 4326 will allow us to plot the land title polygons on top of sf object
 tamonarang_sf <- st_as_sf(tamonarang, coords = c("x", "y"), crs = 4326)
@@ -110,6 +191,7 @@ plot(st_geometry(tamonarang_sf), col = "forest green", axes = TRUE)
 plot(st_geometry(prot), border = "black", add = TRUE)
 plot(st_geometry(hud), border = "black", add = TRUE)
 
+# Create in_HD variable (predictor)
 tamonarang_sf$in_HD <- st_intersects(tamonarang_sf, hud, sparse = FALSE)
 head(tamonarang_sf)
 tamonarang_sf$forest_area_ENG <- c("Protection")
@@ -143,22 +225,10 @@ test <- dist2Line(test_matrix, border_line)
 summary(test)
 test
 
-#treecovertest <- tamonarang[,-(4:5)]
-#treecovertest1 <- dist2Line(treecovertest[,-3], border_line)
-#head(treecovertest1)
-#distance <- treecovertest1[,1]
-#plot(distance)
-
-#y <- treecovertest[, 3]
-#x <- distance
-#summary(x)
-#rdplot(y, x, c = 0.5)
-#rdrobust(y, x, c = 0.5)
-# There could be an error with calculating distance - distances are all positive 
-# Possible solutions: split the dataset into left and right, and calculate distances separately? 
-
 # Convert tamonarang_sf to dataframe 
 tamonarang.df <- as.data.frame(tamonarang_sf, xy = TRUE)
+
+# Create running variable: distrelative
 tamonarang.df$distance <- treecovertest1[,1]
 tamonarang.df$distrelative <- ifelse(tamonarang.df$in_HD==TRUE, tamonarang.df$distance, -tamonarang.df$distance)
 summary(tamonarang.df$distrelative)
@@ -166,7 +236,11 @@ summary(tamonarang.df$distrelative)
 y <- tamonarang.df$treecover2000
 x <- tamonarang.df$distrelative
 z <- tamonarang.df$treecover2017
+```
 
+
+```{r}
+# Creating the outcome variable (% rate of forest cover loss)
 # Create deforestation variable 
 # Deforestation defined as average rate of forest cover loss (2000-2017)
 # As mentioned in Puyravaud (2003), we can use average rate of change formula
@@ -174,13 +248,12 @@ tamonarang_sf$treecover2017 <- ifelse(tamonarang_sf$lossyear > 0, 0, tamonarang_
 tamonarang_sf$rate <- -(tamonarang_sf$treecover2017-tamonarang_sf$treecover2000)/17 
 
 # Calculate forest cover in each year (based on lossyear only)
+# testing: doesn't seem to work...
 tamonarang.test <- tamonarang.df
 for(i in 1:17){
-  #create new column name 
-  tamonarang.test$i <- ifelse(tamonarang.test$lossyear <= i, 0, tamonarang.test$treecover2000)}
-
-# create new column: newcolname <- paste0("year", i)
-# dplyr: mutate,  
+  tamonarang.test$i <- if(tamonarang.test$lossyear == i) {0} 
+  else if(tamonarang.test[,(i-1)]==0){0} else{tamonarang.test$treecover2000}
+}
 
 
 # Forest cover pre-2008 and post-2008
@@ -193,78 +266,10 @@ tamonarang.df$postrate <- -(tamonarang.df$post - tamonarang.df$treecover2000)/8
 # look into creating a loop for this 
 # find out a way to do comparative rdplots year on year (as in Burgess)
 
-# RD plot for treecover in 2000
-rdplot(y, x, c = 0, title = "Baseline RD Plot", x.label = "Distance to the border", 
-       y.label = "Forest cover in 2000", h = 425, x.lim = c(-800, 800))
-robust <- rdrobust(y, x, c = 0, all = TRUE)
-summary(robust)
-bandwidth <- rdbwselect(z, x, c = 0, all = TRUE)
-summary(bandwidth)
+# Save dataset to drive 
 
-# RD plot for treecover in 2017
-rdplot(z, x, c = 0, binselect = "es")
-
-# Testing with different bandwidth sizes 
-# Based on results in line 179, summary(robust), optimal bandwidth selected was 545.092. 
-# Testing using bandwidth of 550 (rounded up) - DISTANCE IS IN METRES
-#rdsample <- subset(tamonarang.df, distrelative <= 550 & distrelative >= -550)
-#summary(rdsample)
-
-#y1 <- rdsample$treecover2000 
-#x1 <- rdsample$distrelative
-#z1 <- rdsample$treecover2017
-
-# Using evenly-sized bins to smoothen the plots 
-rdplot(y1, x1, c=0, y.lim=c(0,100), binselect = "es", x.label = "Distance to the border", y.label = "Forest cover in 2000")
-rdplot(z1, x1, c=0, y.lim=c(0,100), binselect = "es", x.label = "Distance to the border", y.label = "Forest cover in 2017")
-
-robust1 <- rdrobust(y1, x1, c = 0, all = TRUE)
-summary(robust1)
+```
 
 
-# At higher bandwidths (> 100), it looks like the distribution of points is quite continuous
-# in both plots for 2000 and 2017 - no effect? May need to experiment with a longer border.
+###Study area 1: 
 
-# Experimenting with different bin sizes 
-# Evenly-spaced bins
-plot_ebin <- rdplot(y, x, c = 0, binselect = "es")
-summary(plot_ebin)
-
-# Quantile-spaced bins
-plot_qbin <- rdplot(y, x, c = 0, binselect = "qs")
-summary(plot_qbin)
-
-plot_bin <- rdplot(y, x, c = 0, binselect = "qsmv")
-summary(plot_bin)
-
-# With binscatter package 
-install.packages("binscatter")
-library(binscatter)
-
-# With binsreg package 
-install.packages("binsreg")
-library(binsreg)
-
-
-# Descriptive statistics - plots 
-library(ggthemes)
-library(gridExtra)
-# Density plots for treecover in 2000 vs. 2017 (in %)
-ggplot(tamonarang_sf, aes(treecover2000)) + geom_density(col = "forest green") + theme_tufte()
-ggplot(tamonarang_sf, aes(treecover2017)) + geom_density(col = "red") + theme_tufte()
-t2 <- ggplot(tamonarang_sf, aes(in_HD, treecover2017)) + geom_violin(scale = "area", color = "white", aes(fill = in_HD)) + theme_tufte()
-
-t1 <- ggplot(tamonarang_sf, aes(in_HD, treecover2000)) + geom_violin(scale = "area", color = "white", aes(fill = in_HD)) + theme_tufte()
-
-t2 <- t2 + coord_flip()
-t1 <- t1 + coord_flip() 
-grid.arrange(t1, t2, nrow = 2)
-
-# Rate of forest cover loss 
-t3 <- ggplot(tamonarang_sf, aes(rate)) + geom_dotplot(color = "white", alpha = 0.5) + theme_tufte()
-t3 + facet_grid(.~in_HD)
-
-t4 <- ggplot(tamonarang_sf, aes(rate)) + geom_histogram(alpha = 0.5) + theme_tufte()
-t4 + facet_grid(.~in_HD)
-
-ggplot(tamonarang.df, aes(distrelative)) + geom_density()
