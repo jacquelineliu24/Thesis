@@ -15,8 +15,8 @@ library(tidyverse)
 library(rgeos)
 library(geosphere)
 
-# Load the dataframe 
 # (1) Test study area: Tamonarang-1 
+# Load the dataframe
 tamonarang <- readRDS("tamonarang.Rda")
 head(tamonarang)
 
@@ -168,4 +168,146 @@ filter(tam.panel, id ==1)
 saveRDS(tam.wide, file = "tamwide.Rda")
 saveRDS(tam.panel, file = "tampanel.Rda")
 
+################################################################################
+# (1) Study Area 1: Jambi - Near HT-25 
+# Load the dataframe
+SA1 <- readRDS("StudyArea1.Rda")
+head(SA1)
+
+# Load the study area polygons
+prot <- st_read("Polygons/Study Area 1/Jambi_1_nearHT-25_HL.shp")
+hud <- st_read("Polygons/Study Area 1/Jambi_1_nearHT-25_HD.shp")
+
+# Convert dataframe to sf object to coerce x,y columns into geometry column 
+# Changing projection to CRS = 4326 will allow us to plot the land title polygons on top of sf object
+SA1_sf <- st_as_sf(SA1, coords = c("x", "y"), crs = 4326)
+head(SA1_sf)
+
+## CREATE DUMMY VARIABLE: SFP (SOCIAL)
+
+# Identify if point lies in HD or not HD 
+# Plot polygons together to visually inspect data
+plot(st_geometry(SA1_sf), col = "forest green", axes = TRUE) 
+plot(st_geometry(prot), border = "black", add = TRUE)
+plot(st_geometry(hud), border = "black", add = TRUE)
+
+# Check if GFC data intersects with study area polygons 
+# Create new column `in_HD`
+SA1_sf$in_HD <- st_intersects(SA1_sf, hud, sparse = FALSE)
+head(SA1_sf)
+
+## CREATE RUNNING VARIABLE: (DISTANCE)
+
+# Create the border of interest
+# Identifying the border between polygons 
+prot_sp <- as(prot, Class = "Spatial")
+hud_sp <- as(hud, Class = "Spatial")
+
+border = st_intersection(prot, hud)
+border_sp <- as(border, Class = "Spatial")
+
+# Convert border from polygon to spatial line
+border_line <- as(border_sp, Class = "SpatialLines")
+
+# Calculate length of border
+SpatialLinesLengths(border_line, longlat = TRUE)
+
+
+# Checking the plots
+plot(st_geometry(SA1_sf), col = "forest green", axes = TRUE) 
+plot(st_geometry(prot), border = "black", add = TRUE)
+plot(st_geometry(hud), border = "black", add = TRUE)
+plot(border_line, col = "red", add = TRUE)
+
+# Calculate distance from border 
+# Convert tamonarang_sf to dataframe 
+SA1.df <- as.data.frame(SA1_sf, xy = TRUE)
+
+# Create matrix with latitude and longitude stored in x and y columns 
+covermatrix <- SA1[,-(3:8)]
+
+# Calculate distance and relative distance, create new columns to store the values
+dist.SA1 <- dist2Line(covermatrix, border_line)
+head(dist.SA1)
+SA1.df$distrelative <- ifelse(SA1.df$in_HD==TRUE, dist.SA1[,1], -dist.SA1[,1])
+summary(SA1.df$distrelative)
+
+# Renamed columns 
+#names(tamonarang.df)[5] <- "forest_area_ENG"
+#names(tamonarang.df)[6] <- "forest_area"
+head(SA1.df)
+
+## CREATE OUTCOME VARIABLE: RATE OF FOREST COVER LOSS
+
+# Deforestation defined as average annual rate of forest cover loss
+# We first assume that forest cover is recorded as forest cover in this dataset.
+# Later, in robustness checks, we will overlay this with known plantation shapefiles to verify 
+# if plantations have been recorded as forest cover. 
+# As mentioned in Puyravaud (2003), we can use average rate of change formula
+# For the difference-in-difference estimation, our point of comparison is 2008
+# According to Afiff (2016), laws relating to the SFP scheme were: 
+# (2007) Government Regulation 6/2007 on Forest Governance, Planning & Utilisation; and
+# (2008) Minister of Forest Regulation P.49/Menhut-II/2008 on Village Forest, which laid out the mechanism for obtaining an SFP permit 
+
+# Create variables for forest cover pre-2008 and post-2008
+SA1.df$cover_pre08 <- ifelse(SA1.df$lossyear <= 8 & SA1.df$lossyear > 0, 0, SA1.df$treecover2000)
+SA1.df$cover_post08 <- ifelse(SA1.df$lossyear > 0, 0, SA1.df$treecover2000)
+
+# Rate of forest cover loss (f1, f2): -(f2 - f1)/t
+# (f2-f1)/t only calculates rate of change. If rate of change is negative, then it denotes loss. 
+# As this column is concerned with loss, we convert negative values into positive values for ease of interpretation.
+SA1.df$prerate <- -(SA1.df$cover_pre08 - SA1.df$treecover2000)/8
+SA1.df$postrate <- -(SA1.df$cover_post08 - SA1.df$treecover2008)/8
+
+# Save dataframe to drive
+saveRDS(SA1.df, file = "SA1-dataset.Rda")
+
+# Calculate forest cover in each year (based on lossyear only) for regression plots
+# and for robustness checks
+SA1.test <- SA1.df
+
+lossdf <- data.frame(id = 1:91331, yr_00 = SA1.test$treecover2000, lossyear = SA1.test$lossyear)
+
+lossdf <- lossdf %>% 
+  mutate(year=0) %>% 
+  expand(nesting(id, lossyear, yr_00), year = 0:17) %>% 
+  mutate(loss_event = if_else(year >= lossyear & lossyear !=0 , 0, yr_00)) %>% 
+  mutate(year = paste0("yr_", year)) %>% 
+  spread(year, loss_event)
+
+head(lossdf)
+
+lossdf = subset(lossdf, select = -c(yr_0))
+head(lossdf)
+
+# Insert treecover values for 2008 and 2017 
+SA1.df$treecover2008 = lossdf$yr_8
+SA1.df$treecover2017 = lossdf$yr_17
+
+# Save lossdf as dataframe to drive
+saveRDS(lossdf, file = "lossdf-SA1.Rda")
+lossdf1 <- readRDS("lossdf-SA1.Rda")
+
+# Transform dataframes into wide and long (panel) formats for regression 
+# Wide format: 
+# Create tibble extracting geometry and in_HD columns from tamonarang.df dataframe
+geo_id = tibble(geometry = SA1.df[,7], in_HD = SA1.df[,8])
+head(geo_id)
+
+# Join geo_id and lossdf tibble 
+SA1.wide = bind_cols(geo_id, lossdf1)
+dim(SA1.wide)
+head(SA1.wide)
+
+# Panel format: 
+SA1.panel = gather(SA1.wide, key = year, value = treecover, -c(geometry, in_HD, id, lossyear))
+head(SA1.panel)
+View(SA1.panel)
+
+# Checking for 1 point 
+filter(SA1.panel, id ==1)
+
+# Save wide and panel formats: 
+saveRDS(SA1.wide, file = "SA1wide.Rda")
+saveRDS(SA1.panel, file = "SA1panel.Rda")
 

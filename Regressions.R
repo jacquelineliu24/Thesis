@@ -16,6 +16,8 @@ library(rgeos)
 library(geosphere)
 library(stargazer)
 library(rdrobust)
+library(rddtools)
+library(plm)
 
 # Load datasets for analysis
 tamonarang.df <- readRDS("testDataset.Rda")
@@ -101,7 +103,7 @@ y16 <- wide$yr_16
 y17 <- wide$yr_17
 
 rdplot(y1, dist, c = 0)
-rdplot(y10, dist, c = 0)
+rdplot(y10, dist, c = 0, cex = 0.35)
 
 # Cumulative plots 
 # in HD
@@ -138,15 +140,22 @@ resplot <- ggplot(panel, aes(did, res, colour = factor(in_HD))) + geom_jitter(al
 # After 2008 and within the HD land title, forest cover decreased by 19%. 
 
 # RD estimation 
-library(rddtools)
+data <- rdd_data(y17, dist, cutpoint = 0)
+
+mod <- rdd_reg_lm(rdd_object = data, slope = "same", bw = IKbw)
+summary(mod)
+IKbw <- rdd_bw_ik(data, kernel = c("Triangular"))
+IKbw
+
+plot(data, cex = 0.35) 
 
 # Without DiD
 y00<- tamonarang.df$treecover2000
 tamonarang.df$treecover2017 <- wide$yr_17
 y17 <- tamonarang.df$treecover2017
 dist <- tamonarang.df$distrelative
-rdplot(y00, dist, c=0, y.lim = c(0, 100))
-rdplot(y17, dist, c=0, y.lim = c(0,100))
+rdplot(y00, dist, c=0, y.lim = c(0, 100), col.dots = "grey", cex = 0.5)
+rdplot(y17, dist, c=0, y.lim = c(0,100), col.dots = "grey", cex = 0.5)
 
 rdreg17 <- rdrobust(y17, dist, c=0, all = TRUE)
 summary(rdreg17)
