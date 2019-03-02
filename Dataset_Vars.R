@@ -127,21 +127,45 @@ saveRDS(tamonarang.df, file = "testDataset.Rda")
 # and for robustness checks
 tam.test <- tamonarang.df
 
-lossdf <- data.frame(id = 1:91331, cov_00 = tam.test$treecover2000, lossyear = tam.test$lossyear)
+lossdf <- data.frame(id = 1:91331, yr_00 = tam.test$treecover2000, lossyear = tam.test$lossyear)
 
 lossdf <- lossdf %>% 
   mutate(year=0) %>% 
-  expand(nesting(id, cov_00, lossyear), year = 0:17) %>% 
-  mutate(loss_event = if_else(year >= lossyear | year==0, 0, cov_00)) %>% 
+  expand(nesting(id, lossyear, yr_00), year = 0:17) %>% 
+  mutate(loss_event = if_else(year >= lossyear & lossyear !=0 , 0, yr_00)) %>% 
   mutate(year = paste0("yr_", year)) %>% 
   spread(year, loss_event)
 
-lossdf <- select(lossdf, -matches("yr_0"))
+head(lossdf)
+
+lossdf = subset(lossdf, select = -c(yr_0))
 head(lossdf)
 
 # Save lossdf as dataframe to drive
 saveRDS(lossdf, file = "lossdf.Rda")
+lossdf <- readRDS("lossdf.Rda")
 
+# Transform dataframes into wide and long (panel) formats for regression 
+# Wide format: 
+# Create tibble extracting geometry and in_HD columns from tamonarang.df dataframe
+geo_id = tibble(geometry = tamonarang.df[,7], in_HD = tamonarang.df[,8])
+head(geo_id)
 
+# Join geo_id and lossdf tibble 
+tam.wide = bind_cols(geo_id, lossdf)
+dim(tam.wide)
+head(tam.wide)
+
+# Panel format: 
+tam.panel = gather(tam.wide, key = year, value = treecover, -c(geometry, in_HD, id, lossyear))
+head(tam.panel)
+View(tam.panel)
+
+# Checking for 1 point 
+filter(tam.panel, id ==1)
+
+# Save wide and panel formats: 
+saveRDS(tam.wide, file = "tamwide.Rda")
+saveRDS(tam.panel, file = "tampanel.Rda")
 
 
