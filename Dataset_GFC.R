@@ -104,8 +104,8 @@ saveRDS(forestcover_tamonarang, file = "tamonarang.Rda")
 # (1) Study Area 1: Jambi - Near HT-25
 
 # Load study area polygons
-prot <- st_read("Polygons/Study Area 1/Jambi_1_nearHT-25_HL.shp")
-hud <- st_read("Polygons/Study Area 1/Jambi_1_nearHT-25_HD.shp")
+prot <- st_read("Polygons/Study Area 1/J1_nearHT-25_HL.shp")
+hud <- st_read("Polygons/Study Area 1/J1_nearHT-25_HD.shp")
 
 # Crop raster layers to land_titles polygon
 lossyear_prot <- mask(lossyear, mask = prot)
@@ -154,15 +154,20 @@ forestcover_1$forest_area <- c("Hutan Lindung")
 forestcover_1$forest_area_ENG <- c("Protection")
 head(forestcover_1)
 
+# Create new column for study area 
+forestcover_1$study_area <- c("Study Area 1")
+
 # Save dataframe to drive
-saveRDS(forestcover_1, file = "StudyArea1.Rda")
+saveRDS(forestcover_1, file = "RFiles/StudyAreas/StudyArea1.Rda")
+
+# Status: Done as of 9 Mar 2019
 
 ############################################################################
 # (2) Study Area 2: Jambi - Lubuk Beringin
 
 # Load study area polygons
-prot <- st_read("Polygons/Study Area 2/Jambi_1_Lubuk_Beringin_HL.shp")
-hud <- st_read("Polygons/Study Area 2/Jambi_1_Lubuk_Beringin_HD.shp")
+prot <- st_read("Polygons/Study Area 2/J1_Lubuk_Beringin_HL.shp")
+hud <- st_read("Polygons/Study Area 2/J1_Lubuk_Beringin_HD.shp")
 
 # Crop raster layers to land_titles polygon
 lossyear_prot <- mask(lossyear, mask = prot)
@@ -211,8 +216,13 @@ forestcover_2$forest_area <- c("Hutan Lindung")
 forestcover_2$forest_area_ENG <- c("Protection")
 head(forestcover_2)
 
+# Create new column for study area 
+forestcover_2$study_area <- c("Study Area 2")
+
 # Save dataframe to drive
-saveRDS(forestcover_2, file = "StudyArea2.Rda")
+saveRDS(forestcover_2, file = "RFiles/StudyAreas/StudyArea2.Rda")
+
+# Status: Done as of 9 Mar 2019
 
 ############################################################################
 # (3) Study Area 3: Jambi - Tamonarang
@@ -268,6 +278,141 @@ forestcover_3$forest_area <- c("Hutan Lindung")
 forestcover_3$forest_area_ENG <- c("Protection")
 head(forestcover_3)
 
+# Create new column for study area 
+forestcover_3$study_area <- c("Study Area 3")
+
 # Save dataframe to drive
-saveRDS(forestcover_3, file = "StudyArea3.Rda")
+saveRDS(forestcover_3, file = "RFiles/StudyAreas/StudyArea3.Rda")
+
+# Status: Done as of 9 Mar 2019
+
+##########################################################################################################
+# (4) Study Area 4: Sumatra Selantan - Near Kota Pagalaram
+
+# Load study area polygons
+prot <- st_read("Polygons/Study Area 4/S3_Near_Kota_Pagaralam_HL.shp")
+hud <- st_read("Polygons/Study Area 4/S3_Near_Kota_Pagaralam_HD.shp")
+
+# Crop raster layers to land_titles polygon
+lossyear_prot <- mask(lossyear, mask = prot)
+lossyear_prot_crop <- crop(lossyear_prot, prot)
+plot(lossyear_prot_crop)
+
+lossyear_hd <- mask(lossyear, mask = hud)
+lossyear_hd_crop <- crop(lossyear_hd, hud)
+
+lossyear_4 <- merge(lossyear_prot_crop, lossyear_hd_crop)
+plot(lossyear_4)
+
+treecover_prot <- mask(treecover, mask = prot)
+treecover_prot_crop <- crop(treecover_prot, prot)
+
+treecover_hd <- mask(treecover, mask = hud)
+treecover_hd_crop <- crop(treecover_hd, hud)
+
+treecover_4 <- merge(treecover_prot_crop, treecover_hd_crop)
+plot(treecover_4)
+
+# Create raster stack
+crs(lossyear_4) <- mercator
+crs(treecover_4) <- mercator
+
+forestcover_stack4 = stack(treecover_4, lossyear_4)
+head(forestcover_stack4)
+
+# Coerce raster to dataframe 
+forestcover_4_df <- as.data.frame(forestcover_stack4, xy = TRUE)
+sum(is.na(forestcover_4_df))
+forestcover_4_clean <- na.omit(forestcover_4_df)
+sum(is.na(forestcover_4_clean))
+head(forestcover_4_clean)
+names(forestcover_4_clean)[3] <- "treecover2000"
+names(forestcover_4_clean)[4] <- "lossyear"
+forestcover_4 <- forestcover_4_clean
+head(forestcover_4)
+
+# Create new column for Province 
+forestcover_4$province <- c("Sumatra Selantan")
+head(forestcover_4)
+
+# Create new column for Forest Area Type
+forestcover_4$forest_area <- c("Hutan Lindung")
+forestcover_4$forest_area_ENG <- c("Protection")
+head(forestcover_4)
+
+# Create new column for study area 
+forestcover_4$study_area <- c("Study Area 4")
+
+# Save dataframe to drive
+saveRDS(forestcover_4, file = "RFiles/StudyAreas/StudyArea4.Rda")
+
+# Status: Done as of 9 Mar 2019
+
+##########################################################################################################
+# (5) Study Area 5: TO BE UPDATED
+
+# Load study area polygons
+prot <- st_read("Polygons/Study Area 5/S3_HT-0_HL.shp")
+hud <- st_read("Polygons/Study Area 5/S3_HT-0_HD.shp")
+hpt <- st_read("Polygons/Study Area 5/S3_HT-0_HPT.shp")
+
+# Crop raster layers to land_titles polygon
+lossyear_prot <- mask(lossyear, mask = prot)
+lossyear_prot_crop <- crop(lossyear_prot, prot)
+plot(lossyear_prot_crop)
+
+lossyear_hd <- mask(lossyear, mask = hud)
+lossyear_hd_crop <- crop(lossyear_hd, hud)
+
+lossyear_hpt <- mask(lossyear, mask = hpt)
+lossyear_hpt_crop <- crop(lossyear_hpt, hpt)
+
+lossyear_5 <- merge(lossyear_prot_crop, lossyear_hd_crop, lossyear_hpt_crop)
+plot(lossyear_5)
+
+treecover_prot <- mask(treecover, mask = prot)
+treecover_prot_crop <- crop(treecover_prot, prot)
+
+treecover_hd <- mask(treecover, mask = hud)
+treecover_hd_crop <- crop(treecover_hd, hud)
+
+treecover_5 <- merge(treecover_prot_crop, treecover_hd_crop)
+plot(treecover_5)
+
+# Create raster stack
+crs(lossyear_5) <- mercator
+crs(treecover_5) <- mercator
+
+forestcover_stack5 = stack(treecover_5, lossyear_5)
+head(forestcover_stack5)
+
+# Coerce raster to dataframe 
+forestcover_4_df <- as.data.frame(forestcover_stack4, xy = TRUE)
+sum(is.na(forestcover_4_df))
+forestcover_4_clean <- na.omit(forestcover_4_df)
+sum(is.na(forestcover_4_clean))
+head(forestcover_4_clean)
+names(forestcover_4_clean)[3] <- "treecover2000"
+names(forestcover_4_clean)[4] <- "lossyear"
+forestcover_4 <- forestcover_4_clean
+head(forestcover_4)
+
+# Create new column for Province 
+forestcover_4$province <- c("Sumatra Selantan")
+head(forestcover_4)
+
+# Create new column for Forest Area Type
+forestcover_4$forest_area <- c("Hutan Lindung")
+forestcover_4$forest_area_ENG <- c("Protection")
+head(forestcover_4)
+
+# Create new column for study area 
+forestcover_4$study_area <- c("Study Area 4")
+
+# Save dataframe to drive
+saveRDS(forestcover_4, file = "RFiles/StudyAreas/StudyArea4.Rda")
+
+# Status: Done as of 9 Mar 2019
+
+
 
